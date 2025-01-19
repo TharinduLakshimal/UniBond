@@ -41,12 +41,12 @@ const PostItem: React.FC<PostItemProps> = ({ post, username, onLike, onCommentSu
   const handleLikeToggle = async () => {
     const newHasLiked = !hasLiked; // Toggle the like state
     const newLikeCount = newHasLiked ? likeCount + 1 : likeCount - 1; // Adjust the like count based on like state
-
+  
     setHasLiked(newHasLiked); // Update the local like state
     setLikeCount(newLikeCount); // Update the local like count for immediate feedback
-
+  
     try {
-      // Update the like count on the backend
+      // Update the like count on the backend and pass the newHasLiked flag
       onLike(post.id, newHasLiked);
     } catch (error) {
       console.error("Error updating like count:", error);
@@ -55,6 +55,7 @@ const PostItem: React.FC<PostItemProps> = ({ post, username, onLike, onCommentSu
       setLikeCount(likeCount);
     }
   };
+  
 
   return (
     <View style={styles.postContainer}>

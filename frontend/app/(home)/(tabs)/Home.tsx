@@ -1,11 +1,12 @@
 // HomeScreen.tsx
 import React, { useEffect, useState } from "react";
-import { View, Alert, StyleSheet, FlatList, ActivityIndicator } from "react-native";
+import { View, Alert, StyleSheet, FlatList, ActivityIndicator,TouchableOpacity,Image,Text } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/app/providers/AuthProvider";
 import TopNavigationBar from "../../Components/TopNavigationBar";
 import { supabase } from "../../../lib/supabse";
 import PostItem from "../../screens/PostItem"; // Import the PostItem component
+
 
 type Post = {
   id: number;
@@ -53,10 +54,10 @@ const HomeScreen: React.FC = () => {
   const fetchPosts = async () => {
     setLoading(true);
     try {
+      // Fetch all posts, no filtering by user ID
       const { data, error } = await supabase
         .from("posts")
-        .select("id, content, likes, comments, is_public, user_id")
-        .or(`is_public.eq.true,user_id.eq.${session?.user?.id}`);
+        .select("id, content, likes, comments, is_public, user_id");
 
       if (error) throw error;
       setPosts(data || []);
@@ -68,27 +69,29 @@ const HomeScreen: React.FC = () => {
     }
   };
 
-  const handleLike = async (postId: number) => {
+  const handleLike = async (postId: number, hasLiked: boolean) => {
     try {
       const post = posts.find((p) => p.id === postId);
       if (!post) throw new Error("Post not found");
-
+  
+      const updatedLikes = hasLiked ? post.likes - 1 : post.likes + 1; // Update likes based on the current like state
       setPosts((prev) =>
-        prev.map((p) => (p.id === postId ? { ...p, likes: p.likes + 1 } : p))
+        prev.map((p) => (p.id === postId ? { ...p, likes: updatedLikes } : p))
       );
-
+  
       const { error } = await supabase
         .from("posts")
-        .update({ likes: post.likes + 1 })
+        .update({ likes: updatedLikes })
         .eq("id", postId);
-
+  
       if (error) throw error;
     } catch (error) {
-      console.error("Error liking post:", error);
-      Alert.alert("Error", "Could not like the post.");
-      fetchPosts();
+      console.error("Error updating like count:", error);
+      Alert.alert("Error", "Could not update the like count.");
+      fetchPosts(); // Fetch posts again to update the state correctly
     }
   };
+  
 
   const handleCommentSubmit = async (postId: number, newComment: string) => {
     try {
@@ -124,13 +127,14 @@ const HomeScreen: React.FC = () => {
   }
 
   return (
-    <>
+           <>
       <TopNavigationBar
         userName={username}
         onProfilePress={() => router.push("/screens/ShowProfileEdit")}
         onNotificationPress={() => router.push("/screens/NotificationScreen")}
         onPostPress={() => router.push("/screens/PostScreen")}
       />
+   
       <FlatList
         data={posts}
         renderItem={({ item }) => (
@@ -144,7 +148,19 @@ const HomeScreen: React.FC = () => {
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.postList}
       />
-    </>
+
+    <TouchableOpacity
+          style={styles.DonateButton}
+          onPress={() => {
+            router.push("/screens/DonationScreen");
+          }}
+        >
+          <Image source={require("../../Constatnts/Donate Icon.png")} />
+
+          <Text style={{ color: "#000", fontWeight: "bold" }}>Donate</Text>
+
+        </TouchableOpacity>
+        </>
   );
 };
 
@@ -156,6 +172,28 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+  },  DonateButton: {
+    borderWidth: 1,
+    borderColor: "#EBF2FA",
+    alignItems: "center",
+    justifyContent: "center",
+    width: 70,
+    position: "absolute",
+    top: 600, // Consider replacing this with a more responsive positioning like `bottom`.
+    right: 20,
+    height: 70,
+    backgroundColor: "#EBF2FA",
+    borderRadius: 100,
+    // Shadow for iOS
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    // Shadow for Android
+    elevation: 5,
   },
 });
 
